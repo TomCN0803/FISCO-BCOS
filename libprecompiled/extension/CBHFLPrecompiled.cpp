@@ -14,16 +14,20 @@ typedef std::unordered_map<std::string, std::string> Pair;
 typedef std::unordered_map<std::string, float> Scores;
 
 
+// log prefix
+const std::string LOG_BADGE = "[CBHFLPrecompiled] ";
+
+
 // role names
 const std::string ROLE_TRAINER = "trainer";
 const std::string ROLE_AGG = "agg";
 
 const std::string TABLE_NAME = "CBHFLPrecompiled";  // table name
 
-const std::string KEY_FIELD = "key";                    // key field
-const std::string VALUE_FIELD = "value";                // value field
+const std::string KEY_FIELD = "key";                // key field
+const std::string VALUE_FIELD = "value";            // value field
 
-const std::string EPOCH_FIELD_NAME = "epoch";  // 当前迭代轮次(int)-->触发链下训练
+const std::string EPOCH_FIELD_NAME = "epoch";       // 当前迭代轮次(int)-->触发链下训练
 const std::string ROLES_FIELD_NAME = "roles";  // 保存各个客户端的角色(unordered_map<Adress,string>)
 const std::string GLOBAL_PROTOS_FIELD_NAME = "global_protos";  // 保存全局Protos(string)
 const std::string LOCAL_PROTOS_UPDATES_FIELD_NAME =
@@ -44,7 +48,7 @@ inline std::string to_json_string(T& t)
     return j.dump();
 }
 
-CommitteePrecompiled::CommitteePrecompiled()  // 构造，初始化函数选择器对应的函数
+CBHFLPrecompiled::CBHFLPrecompiled()  // 构造，初始化函数选择器对应的函数
 {
     name2Selector[REGISTER_NODE] = getFuncSelector(REGISTER_NODE);
     name2Selector[QUERY_CURRENT_EPOCH] = getFuncSelector(QUERY_CURRENT_EPOCH);
@@ -54,11 +58,12 @@ CommitteePrecompiled::CommitteePrecompiled()  // 构造，初始化函数选择�
     name2Selector[UPDATE_GLOBAL_PROTOS] = getFuncSelector(UPDATE_GLOBAL_PROTOS);
 }
 
-PrecompiledExecResult::Ptr CommitteePrecompiled::call(
-    dev::blockverifier::ExecutiveContext::Ptr _context, bytesConstRef _param,
+
+PrecompiledExecResult::Ptr dev::precompiled::CBHFLPrecompiled::call(
+    std::shared_ptr<dev::blockverifier::ExecutiveContext> _context, bytesConstRef _param,
     Address const& _origin, Address const&)
 {
-    PRECOMPILED_LOG(TRACE) << LOG_BADGE("CommitteePrecompiled") << LOG_DESC("call")
+    PRECOMPILED_LOG(TRACE) << LOG_BADGE("CBHFLPrecompiled") << LOG_DESC("call")
                            << LOG_KV("param", toHex(_param));
 
     // parse function name
@@ -95,7 +100,8 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
         std::string role;
         abi.abiOut(data, role);
 #if OUTPUT
-        std::clog << "register for " << _origin_str << std::endl << "role: " << role << std::endl;
+        std::clog << LOG_BADGE << "Register for " << _origin_str << std::endl
+                  << "role: " << role << std::endl;
 #endif
 
         std::string roles_str = GetVariable(table, _origin, callResult, ROLES_FIELD_NAME);
@@ -118,12 +124,15 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
         else
         {
 #if OUTPUT
-            std::clog << "node already registered" << std::endl;
+            std::clog << LOG_BADGE << "User " << _origin_str << " already registered" << std::endl;
 #endif
         }
     }
     else if (func == name2Selector[QUERY_CURRENT_EPOCH])
     {
+#if OUTPUT
+        std::clog << LOG_BADGE << "Query current epoch for " << _origin_str << std::endl;
+#endif
         // 获取当前epoch
         std::string epoch_str = GetVariable(table, _origin, callResult, EPOCH_FIELD_NAME);
         int epoch = json::parse(epoch_str);
@@ -131,6 +140,9 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
     }
     else if (func == name2Selector[QUERY_GLOBAL_PROTOS])
     {
+#if OUTPUT
+        std::clog << LOG_BADGE << "Query global protos for " << _origin_str << std::endl;
+#endif
         // 获取全局Protos
         std::string global_protos_str =
             GetVariable(table, _origin, callResult, GLOBAL_PROTOS_FIELD_NAME);
@@ -140,6 +152,9 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
     }
     else if (func == name2Selector[UPLOAD_LOCAL_PROTOS])
     {
+#if OUTPUT
+        std::clog << LOG_BADGE << "Upload local protos for " << _origin_str << std::endl;
+#endif
         // 上传本地Protos
         std::string protos;
         s256 ep;
@@ -167,6 +182,9 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
     }
     else if (func == name2Selector[QUERY_PROTOS_UPDATES])
     {
+#if OUTPUT
+        std::clog << LOG_BADGE << "Query protos updates for " << _origin_str << std::endl;
+#endif
         // 获取所有本地Protos更新
         std::string local_protos_updates_str =
             GetVariable(table, _origin, callResult, LOCAL_PROTOS_UPDATES_FIELD_NAME);
@@ -174,6 +192,9 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
     }
     else if (func == name2Selector[UPDATE_GLOBAL_PROTOS])
     {
+#if OUTPUT
+        std::clog << LOG_BADGE << "Update global protos for " << _origin_str << std::endl;
+#endif
         // 更新全局Protos
         std::string protos;
         s256 ep;
@@ -195,7 +216,7 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
     }
     else
     {  // unknown function call
-        PRECOMPILED_LOG(ERROR) << LOG_BADGE("CommitteePrecompiled") << LOG_DESC(" unknown func ")
+        PRECOMPILED_LOG(ERROR) << LOG_BADGE("CBHFLPrecompiled") << LOG_DESC(" unknown func ")
                                << LOG_KV("func", func);
         callResult->setExecResult(abi.abiIn("", u256(CODE_UNKNOW_FUNCTION_CALL)));
     }
@@ -204,7 +225,7 @@ PrecompiledExecResult::Ptr CommitteePrecompiled::call(
 }
 
 // init global model
-void CommitteePrecompiled::InitGlobalModel(
+void CBHFLPrecompiled::InitGlobalModel(
     Table::Ptr table, Address const& _origin, PrecompiledExecResult::Ptr callResult)
 {
     int epoch = -999;
@@ -223,7 +244,7 @@ void CommitteePrecompiled::InitGlobalModel(
 
 
 // insert variable
-void CommitteePrecompiled::InsertVariable(Table::Ptr table, Address const& _origin,
+void CBHFLPrecompiled::InsertVariable(Table::Ptr table, Address const& _origin,
     PrecompiledExecResult::Ptr callResult, const std::string& Key, std::string& strValue)
 {
     int count = 0;
@@ -238,14 +259,14 @@ void CommitteePrecompiled::InsertVariable(Table::Ptr table, Address const& _orig
     }
     if (count == storage::CODE_NO_AUTHORIZED)
     {  //  permission denied
-        PRECOMPILED_LOG(ERROR) << LOG_BADGE("CommitteePrecompiled") << LOG_DESC("set")
+        PRECOMPILED_LOG(ERROR) << LOG_BADGE("CBHFLPrecompiled") << LOG_DESC("set")
                                << LOG_DESC("permission denied");
     }
     getErrorCodeOut(callResult->mutableExecResult(), count);
 }
 
 // get variable
-std::string CommitteePrecompiled::GetVariable(
+std::string CBHFLPrecompiled::GetVariable(
     Table::Ptr table, Address const&, PrecompiledExecResult::Ptr callResult, const std::string& Key)
 {
     auto entries = table->select(Key, table->newCondition());
@@ -261,7 +282,7 @@ std::string CommitteePrecompiled::GetVariable(
 }
 
 // update variable
-void CommitteePrecompiled::UpdateVariable(Table::Ptr table, Address const& _origin,
+void CBHFLPrecompiled::UpdateVariable(Table::Ptr table, Address const& _origin,
     PrecompiledExecResult::Ptr callResult, const std::string& Key, std::string& strValue)
 {
     int count = 0;
@@ -277,7 +298,7 @@ void CommitteePrecompiled::UpdateVariable(Table::Ptr table, Address const& _orig
     }
     if (count == storage::CODE_NO_AUTHORIZED)
     {  //  permission denied
-        PRECOMPILED_LOG(ERROR) << LOG_BADGE("CommitteePrecompiled") << LOG_DESC("set")
+        PRECOMPILED_LOG(ERROR) << LOG_BADGE("CBHFLPrecompiled") << LOG_DESC("set")
                                << LOG_DESC("permission denied");
     }
     getErrorCodeOut(callResult->mutableExecResult(), count);

@@ -10,12 +10,12 @@ namespace dev
 namespace precompiled
 {
 
-class CommitteePrecompiled : public dev::precompiled::Precompiled
+class CBHFLPrecompiled : public dev::precompiled::Precompiled
 {
 public:
-    typedef std::shared_ptr<CommitteePrecompiled> Ptr;  // 指针
-    CommitteePrecompiled();                             // 构造
-    virtual ~CommitteePrecompiled(){};                  // 析构
+    typedef std::shared_ptr<CBHFLPrecompiled> Ptr;  // 指针
+    CBHFLPrecompiled();                             // 构造
+    virtual ~CBHFLPrecompiled(){};                  // 析构
 
     PrecompiledExecResult::Ptr call(std::shared_ptr<dev::blockverifier::ExecutiveContext> _context,
         bytesConstRef _param, Address const& _origin = Address(),
