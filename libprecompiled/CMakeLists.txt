@@ -6,5 +6,6 @@ add_library(precompiled ${SRC_LIST} ${HEADERS})
 target_link_libraries(precompiled PRIVATE blockverifier ethcore)
 target_link_libraries(precompiled PUBLIC storage devcore JsonCpp)
 target_link_libraries(precompiled PRIVATE Paillier GroupSig VRF)
+target_link_libraries(precompiled PRIVATE nlohmann_json)
 
 add_subdirectory(extension)

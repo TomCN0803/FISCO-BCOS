@@ -35,6 +35,8 @@ endif()
 
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+
 # basic setting
 include(Options)
 configure_project()
@@ -94,6 +96,7 @@ add_subdirectory(libsecurity)
 add_subdirectory(libeventfilter)
 # generate executable binary fisco-bcos
 add_subdirectory(fisco-bcos)
+add_subdirectory(libnlohmann_json)
 
 
 if (TESTS)
